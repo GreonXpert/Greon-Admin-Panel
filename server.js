@@ -1,4 +1,4 @@
-// server.js - Entry Point
+// server.js - Updated Entry Point with content routes
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -20,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/content', require('./routes/contentRoutes')); // Add content routes
 // app.use('/api/users', require('./routes/userRoutes'));
 // app.use('/api/website', require('./routes/websiteRoutes'));
 

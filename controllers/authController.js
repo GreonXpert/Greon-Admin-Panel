@@ -2,7 +2,6 @@
 const User = require('../models/User');
 const OTP = require('../models/OTP');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const { generateOTP } = require('../utils/otpGenerator');
 const mailer = require('../config/mailer');
 
@@ -10,6 +9,14 @@ const mailer = require('../config/mailer');
 exports.requestOTP = async (req, res) => {
   try {
     const { email } = req.body;
+    
+    // Check if email is provided
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required' 
+      });
+    }
     
     // Check if email is the admin email from env
     if (email !== process.env.ADMIN_EMAIL) {
@@ -46,6 +53,8 @@ exports.requestOTP = async (req, res) => {
       });
     }
     
+    console.log(`OTP sent to admin email: ${email}`);
+    
     res.status(200).json({ 
       success: true, 
       message: 'OTP sent to your email' 
@@ -64,6 +73,22 @@ exports.requestOTP = async (req, res) => {
 exports.verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
+    
+    // Validate input
+    if (!email || !otp) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email and OTP are required' 
+      });
+    }
+    
+    // Check if email is the admin email
+    if (email !== process.env.ADMIN_EMAIL) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Unauthorized access attempt' 
+      });
+    }
     
     // Find the OTP record
     const otpRecord = await OTP.findOne({ email });
@@ -107,6 +132,8 @@ exports.verifyOTP = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
+    
+    console.log(`Admin authenticated successfully: ${email}`);
     
     res.status(200).json({
       success: true,
@@ -153,4 +180,13 @@ exports.getProfile = async (req, res) => {
       error: error.message 
     });
   }
+};
+
+// Test protected route
+exports.testProtected = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'This is a protected route',
+    user: req.user
+  });
 };

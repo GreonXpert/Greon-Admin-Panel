@@ -27,6 +27,14 @@ module.exports = async (req, res, next) => {
       });
     }
     
+    // Check if user is admin
+    if (user.email !== process.env.ADMIN_EMAIL) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin access required.'
+      });
+    }
+    
     // Add user to request
     req.user = decoded;
     next();

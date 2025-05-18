@@ -10,5 +10,6 @@ router.post('/verify-otp', authController.verifyOTP);
 
 // Protected routes
 router.get('/profile', auth, authController.getProfile);
+router.get('/test-protected', auth, authController.testProtected);
 
 module.exports = router;
