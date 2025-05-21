@@ -503,3 +503,38 @@ exports.getImageStats = async (req, res) => {
     });
   }
 };
+
+// Get single image by ID - FIXED VERSION
+exports.getImageById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log(`Searching for image with ID: ${id}`); // Debug log
+    
+    const image = await Image.findById(id)
+      .populate('uploadedBy', 'name email')
+      .select('-__v');
+    
+    if (!image) {
+      console.log(`Image not found with ID: ${id}`); // Debug log
+      return res.status(404).json({
+        success: false,
+        message: 'Image not found'
+      });
+    }
+
+    console.log(`Image found: ${image.originalName}`); // Debug log
+    
+    res.status(200).json({
+      success: true,
+      data: image
+    });
+  } catch (error) {
+    console.error(`Get image ${req.params.id} error:`, error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};

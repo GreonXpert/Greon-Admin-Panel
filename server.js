@@ -42,6 +42,7 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/content', require('./routes/contentRoutes'));
 app.use('/api/images', require('./routes/imageRoutes')); // Add image routes
+app.use('/api/emissions', require('./routes/emissionRoutes'));
 
 // Error handler middleware
 app.use((err, req, res, next) => {

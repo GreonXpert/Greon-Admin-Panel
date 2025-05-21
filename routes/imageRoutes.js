@@ -1,8 +1,9 @@
-// routes/imageRoutes.js - Image Management Routes
+// routes/imageRoutes.js - FIXED Version
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const mongoose = require('mongoose'); // Add this import
 const imageController = require('../controllers/imageController');
 const auth = require('../middleware/auth');
 
@@ -43,32 +44,46 @@ if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 
+// Middleware to validate ObjectId
+const validateObjectId = (req, res, next) => {
+  const { id } = req.params;
+  
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid image ID format'
+    });
+  }
+  
+  next();
+};
+
 // Public routes (no authentication required)
 // Get images by category (public endpoint for frontend display)
 router.get('/category/:category', imageController.getImagesByCategory);
 
-// Get single image by ID (public endpoint)
-router.get('/:id', imageController.getImageById);
+// Get single image by ID (public endpoint) - FIXED: Added validation
+router.get('/:id', validateObjectId, imageController.getImageById);
 
 // All routes below require authentication
 router.use(auth);
 
-// Upload image (supports both multipart and base64)
-router.post('/upload', upload.single('image'), imageController.uploadImage);
-
 // Get all images with filtering and pagination
 router.get('/', imageController.getAllImages);
+
+// Upload image (supports both multipart and base64)
+router.post('/upload', upload.single('image'), imageController.uploadImage);
 
 // Get image statistics
 router.get('/stats/summary', imageController.getImageStats);
 
-// Update image metadata
-router.put('/:id', imageController.updateImage);
+// Update image metadata - FIXED: Added validation
+router.put('/:id', validateObjectId, imageController.updateImage);
 
-// Replace image file
-router.put('/:id/replace', upload.single('image'), imageController.replaceImage);
+// Replace image file - FIXED: Added validation
+router.put('/:id/replace', validateObjectId, upload.single('image'), imageController.replaceImage);
 
-// Delete image (soft delete by default, permanent with forceDelete=true)
-router.delete('/:id', imageController.deleteImage);
+// Delete image (soft delete by default, permanent with forceDelete=true) - FIXED: Added validation
+router.delete('/:id', validateObjectId, imageController.deleteImage);
 
 module.exports = router;
