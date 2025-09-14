@@ -17,6 +17,7 @@ const allowedOrigins = (process.env.CLIENT_URLS
 ).concat([
   'http://localhost:3000',
   'http://localhost:3001',
+  'https://famous-flan-b47c86.netlify.app'
 ]).filter(Boolean);
 
 const io = socketIo(server, {
