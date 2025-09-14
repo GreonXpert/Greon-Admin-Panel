@@ -18,7 +18,7 @@ const allowedOrigins = (process.env.CLIENT_URLS
   'http://localhost:3000',
   'http://localhost:3001',
   'https://famous-flan-b47c86.netlify.app',
-  'https://legendary-gumdrop-655779.netlify.app'
+  'https://silly-starburst-4799c5.netlify.app'
 ]).filter(Boolean);
 
 const io = socketIo(server, {
