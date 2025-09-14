@@ -4,39 +4,56 @@ const bcrypt = require('bcryptjs');
 const UserSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    required: [true, 'Please provide name'],
+    trim: true,
+    maxlength: 50
   },
   email: {
     type: String,
-    required: true,
+    required: [true, 'Please provide email'],
     unique: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email'],
+    match: [
+      /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+      'Please provide a valid email'
+    ]
+  },
+  password: {
+    type: String,
+    required: [true, 'Please provide password'],
+    minlength: 6,
+    select: false
   },
   role: {
     type: String,
-    enum: ['admin', 'editor'],
-    default: 'editor',
+    enum: ['user', 'admin', 'superadmin'],
+    default: 'user'
   },
-  isVerified: {
+  isActive: {
     type: Boolean,
-    default: false,
+    default: true
   },
-  lastLogin: {
-    type: Date,
-    default: null,
-  },
+  createdBy: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'User',
+    required: false
+  }
 }, {
-  timestamps: true,
+  timestamps: true
 });
 
 // Hash password before saving
 UserSchema.pre('save', async function(next) {
-  // Only hash if password field is being modified
-  if (this.isModified('password')) {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-  }
+  if (!this.isModified('password')) return next();
+  
+  this.password = await bcrypt.hash(this.password, 12);
   next();
 });
+
+// Compare password method
+UserSchema.methods.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+
 
 module.exports = mongoose.model('User', UserSchema);
