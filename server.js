@@ -95,7 +95,7 @@ io.on('connection', (socket) => {
   // Existing emission data request
   socket.on('request-emissions-data', async () => {
     try {
-      const Emission = require('./models/emission');
+      const Emission = require('./models/Emission');
       const emissions = await Emission.find().sort({ year: -1 });
       socket.emit('emissions-data', { success: true, data: emissions });
     } catch (error) {

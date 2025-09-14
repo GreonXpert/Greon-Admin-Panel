@@ -1,4 +1,4 @@
-const Emission = require('../models/emission');
+const Emission = require('../models/Emission');
 
 // @desc Get all emissions data
 // @route GET /api/emissions
