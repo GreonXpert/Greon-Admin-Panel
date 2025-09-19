@@ -17,7 +17,7 @@ const allowedOrigins = (process.env.CLIENT_URLS
 ).concat([
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://famous-flan-b47c86.netlify.app',
+  'https://lovely-centaur-3b0274.netlify.app',
   'https://silly-starburst-4799c5.netlify.app'
 ]).filter(Boolean);
 
