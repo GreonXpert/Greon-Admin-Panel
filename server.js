@@ -93,6 +93,13 @@ io.on('connection', (socket) => {
   socket.join('solutions');
   socket.join('solutions-admin');
   socket.join('solutions-public');
+  socket.join('testimonials');
+  socket.join('testimonials-admin');
+  socket.join('testimonials-public');
+  socket.join('projects');
+  socket.join('projects-admin');
+  socket.join('projects-public');
+
 
   // Existing emission data request
   socket.on('request-emissions-data', async () => {
@@ -345,6 +352,66 @@ socket.on('leave-contact-room', (roomType = 'contact-forms') => {
     console.log(`Socket ${socket.id} left ${roomType} room`);
   }
 });
+// Allow FE to explicitly join/leave
+socket.on('join-testimonial-room', (roomType = 'testimonials') => {
+  const valid = ['testimonials', 'testimonials-admin', 'testimonials-public'];
+  if (valid.includes(roomType)) {
+    socket.join(roomType);
+    console.log(`Socket ${socket.id} joined ${roomType} room`);
+  }
+});
+socket.on('leave-testimonial-room', (roomType = 'testimonials') => {
+  const valid = ['testimonials', 'testimonials-admin', 'testimonials-public'];
+  if (valid.includes(roomType)) {
+    socket.leave(roomType);
+    console.log(`Socket ${socket.id} left ${roomType} room`);
+  }
+});
+
+// Fetch testimonials on demand
+socket.on('request-testimonials-data', async (payload = {}) => {
+  try {
+    const Testimonial = require('./models/Testimonials/testimonialModel');
+    const { status = 'approved', limit = 50, sort = '-rating,-createdAt' } = payload;
+    const data = await Testimonial.find({ status }).sort(sort.split(',').join(' ')).limit(Number(limit));
+    socket.emit('testimonials-data', { success: true, data });
+  } catch (err) {
+    socket.emit('testimonials-error', { success: false, message: 'Error fetching testimonials' });
+  }
+});
+
+// Public list (e.g., completed/featured — adjust as needed)
+socket.on('request-projects-data', async () => {
+  try {
+    const Project = require('./models/project');
+    const data = await Project.find({ status: 'Completed' }).sort({ order: 1, createdAt: -1 });
+    socket.emit('projects-data', { success: true, data });
+  } catch (err) {
+    socket.emit('projects-error', { success: false, message: 'Error fetching projects data' });
+  }
+});
+
+// Admin list
+socket.on('request-projects-admin-data', async () => {
+  try {
+    const Project = require('./models/project');
+    const data = await Project.find().sort({ order: 1, createdAt: -1 });
+    socket.emit('projects-admin-data', { success: true, data });
+  } catch (err) {
+    socket.emit('projects-admin-error', { success: false, message: 'Error fetching projects admin data' });
+  }
+});
+
+// Room join/leave helpers
+socket.on('join-projects-room', (room = 'projects') => {
+  const valid = ['projects', 'projects-admin', 'projects-public'];
+  if (valid.includes(room)) socket.join(room);
+});
+socket.on('leave-projects-room', (room = 'projects') => {
+  const valid = ['projects', 'projects-admin', 'projects-public'];
+  if (valid.includes(room)) socket.leave(room);
+});
+
 
 });
 
@@ -362,6 +429,9 @@ const journeyRoutes = require('./routes/journeyRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const solutionRoutes = require('./routes/solutionRoutes');
 const contactFormRoutes = require('./routes/contactFormRoutes');
+const testimonialRoutes = require('./routes/testimonialRoutes'); // NEW
+const projectRoutes = require('./routes/projectRoutes');
+
 
 
 app.use('/api/emissions', emissionRoutes);
@@ -378,6 +448,9 @@ app.use('/api/journey', journeyRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/solutions', solutionRoutes);
 app.use('/api/contact-forms', contactFormRoutes);
+app.use('/api/testimonials', testimonialRoutes); // NEW
+app.use('/api/projects', projectRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('GreonXpert API with Authentication & Real-time Socket.IO is running...');

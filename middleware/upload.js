@@ -35,6 +35,7 @@ const createUploadDirectories = () => {
     'Journey/logos',
     'Team',
     'solutions',
+    'projects',
   ];
 
   directories.forEach(dir => {
@@ -406,6 +407,28 @@ const uploadSolutions = multer({
     files: 10 // Maximum 10 files for solution
   }
 }).array('images', 10); // Accept up to 10 images with field name 'images'
+// === Testimonials storage and middleware ===
+const testimonialStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, '..', 'uploads', 'testimonials');
+    ensureDirectoryExists(uploadPath);
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const random = Math.round(Math.random() * 1e9);
+    const sanitizedOriginalName = sanitizeFilename(file.originalname);
+    const ext = path.extname(sanitizedOriginalName);
+    const base = path.basename(sanitizedOriginalName, ext);
+    cb(null, `testimonial-${timestamp}-${random}-${base}${ext}`);
+  },
+});
+
+const uploadTestimonialPhoto = multer({
+  storage: testimonialStorage,
+  fileFilter: fileFilter,
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB is plenty for a photo
+}).single('photo');
 
 // PBS Storage (unchanged)
 const pbsStorage = multer.diskStorage({
@@ -466,6 +489,44 @@ const uploadAdvisoryMember = multer({
   limits: { fileSize: 1024 * 1024 * 5 }
 }).single('image');
 
+// Projects Storage Configuration
+const projectsStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const baseUploadPath = path.join(__dirname, '..', 'uploads', 'projects'); // ✅ root/uploads/projects
+    ensureDirectoryExists(baseUploadPath);
+    console.log(`📤 Projects upload destination: ${baseUploadPath}`);
+    cb(null, baseUploadPath);
+  },
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const random = Math.round(Math.random() * 1E9);
+    const sanitizedOriginalName = sanitizeFilename(file.originalname);
+    const ext = path.extname(sanitizedOriginalName);
+    const base = path.basename(sanitizedOriginalName, ext);
+
+    // Prefix cover vs gallery for easy debugging
+    const prefix = file.fieldname === 'mainImage' ? 'cover' : 'gallery';
+    const filename = `${prefix}-${timestamp}-${random}-${base}${ext}`;
+    console.log(`📄 Projects filename: ${filename}`);
+    cb(null, filename);
+  }
+});
+
+// Accept single cover (mainImage) + multiple gallery images
+const uploadProjects = multer({
+  storage: projectsStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB per file
+    files: 13                   // ✅ 1 cover + up to 12 gallery
+  }
+}).fields([
+  { name: 'mainImage', maxCount: 1 },
+  { name: 'images', maxCount: 12 }
+]);
+
+
+
 module.exports = {
   // Existing exports
   uploadPartnership,
@@ -481,5 +542,7 @@ module.exports = {
   createUploadDirectories,
   uploadJourney,
   uploadTeamMember,
-  uploadSolutions
+  uploadSolutions,
+  uploadTestimonialPhoto,
+  uploadProjects,
 };
