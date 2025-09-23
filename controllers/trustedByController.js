@@ -81,42 +81,39 @@ exports.getProductIcons = async (req, res) => {
   }
 };
 
-// @desc Delete a partnership
-// @route DELETE /api/trusted/partnerships/:id
+// @desc Add a new partnership with image upload
+// @route POST /api/trusted/partnerships
 // @access Private
-exports.deletePartnership = async (req, res) => {
+exports.addPartnership = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid partnership ID' });
+    const { name, description } = req.body;
+    if (!name || !description) {
+      return res.status(400).json({ success: false, message: 'Please provide name and description' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please upload an image' });
     }
 
-    // Find the partnership first to get the image URL
-    const partnership = await Partnership.findById(id);
-    
-    if (!partnership) {
-      return res.status(404).json({ success: false, message: 'Partnership not found' });
-    }
+    const imageUrl = `/uploads/partnerships/${req.file.filename}`;
+    const newPartnership = new Partnership({
+      name,
+      description,
+      imageUrl,
+    });
 
-    // Delete the partnership from database
-    const removed = await Partnership.findByIdAndDelete(id);
-    
-    // Delete the associated image file
-    if (removed && removed.imageUrl) {
-      await deleteImageFile(removed.imageUrl);
-    }
-
-    // Emit real-time update
+    await newPartnership.save();
     const io = req.app.get('io');
-    if (io) {
-      const partnerships = await Partnership.find().sort({ createdAt: -1 });
-      io.to('trustedBy').emit('partnerships-updated', { success: true, data: partnerships });
-    }
+    const partnerships = await Partnership.find().sort({ createdAt: -1 });
+    io.to('trustedBy').emit('partnerships-updated', { success: true, data: partnerships });
 
-    console.log(`✅ Deleted partnership and image: ${removed.name}`);
-    res.json({ success: true, message: 'Partnership and image deleted successfully', data: removed });
+    console.log(`✅ Created partnership: ${newPartnership.name}`);
+    res.status(201).json({ success: true, data: newPartnership });
   } catch (error) {
-    console.error('❌ Error deleting partnership:', error);
+    console.error('❌ Error creating partnership:', error);
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(e => e.message);
+      return res.status(400).json({ success: false, message: errors.join(', ') });
+    }
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -168,17 +165,30 @@ exports.deletePartnership = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid partnership ID' });
     }
 
-    const removed = await Partnership.findByIdAndDelete(id);
-    if (!removed) {
+    // Find the partnership first to get the image URL
+    const partnership = await Partnership.findById(id);
+    
+    if (!partnership) {
       return res.status(404).json({ success: false, message: 'Partnership not found' });
     }
 
-    const io = req.app.get('io');
-    const partnerships = await Partnership.find().sort({ createdAt: -1 });
-    io.to('trustedBy').emit('partnerships-updated', { success: true, data: partnerships });
+    // Delete the partnership from database
+    const removed = await Partnership.findByIdAndDelete(id);
+    
+    // Delete the associated image file
+    if (removed && removed.imageUrl) {
+      await deleteImageFile(removed.imageUrl);
+    }
 
-    console.log(`✅ Deleted partnership: ${removed.name}`);
-    res.json({ success: true, message: 'Partnership deleted successfully', data: removed });
+    // Emit real-time update
+    const io = req.app.get('io');
+    if (io) {
+      const partnerships = await Partnership.find().sort({ createdAt: -1 });
+      io.to('trustedBy').emit('partnerships-updated', { success: true, data: partnerships });
+    }
+
+    console.log(`✅ Deleted partnership and image: ${removed.name}`);
+    res.json({ success: true, message: 'Partnership and image deleted successfully', data: removed });
   } catch (error) {
     console.error('❌ Error deleting partnership:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
