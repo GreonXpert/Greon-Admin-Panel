@@ -8,9 +8,14 @@ const {
   getRecognitions,
   addRecognition,
   updateRecognition,     // NEW
-  deleteRecognition      // NEW
+  deleteRecognition,      // NEW
+   getProductIcons,
+  getProductIcon,
+  addProductIcon,
+  updateProductIcon,
+  deleteProductIcon
 } = require('../controllers/trustedByController');
-const { uploadPartnership, uploadRecognition } = require('../middleware/upload');
+const { uploadPartnership, uploadRecognition, uploadProductIcon } = require('../middleware/upload');
 
 // Partnership routes
 router.route('/partnerships')
@@ -29,5 +34,18 @@ router.route('/recognitions')
 router.route('/recognitions/:id')
   .put(uploadRecognition, updateRecognition)   // image optional on update
   .delete(deleteRecognition);
+
+// ========================= NEW PRODUCT ICON ROUTES =========================
+// Product Icons routes
+// Product Icons routes
+router.route('/product-icons')
+  .get(getProductIcons)
+  .post(uploadProductIcon, addProductIcon);
+
+router.route('/product-icons/:id')
+  .get(getProductIcon)
+  .put(uploadProductIcon, updateProductIcon)
+  .delete(deleteProductIcon);
+
 
 module.exports = router;

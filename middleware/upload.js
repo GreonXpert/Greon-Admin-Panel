@@ -13,6 +13,7 @@ const createUploadDirectories = () => {
     // Existing directories
     'partnerships',
     'recognitions', 
+    'productIcons',
     'ClimateIntelligence',
     'advisoryBoard',
     'SustainabilityStory/Blog',
@@ -525,6 +526,35 @@ const uploadProjects = multer({
   { name: 'images', maxCount: 12 }
 ]);
 
+// ✅ NEW: Product Icons Storage Configuration
+const productIconsStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, '..', 'uploads', 'productIcons');
+    ensureDirectoryExists(uploadPath);
+    console.log(`📤 Product Icons upload destination: ${uploadPath}`);
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const random = Math.round(Math.random() * 1E9);
+    const sanitizedOriginalName = sanitizeFilename(file.originalname);
+    const extension = path.extname(sanitizedOriginalName);
+    const baseName = path.basename(sanitizedOriginalName, extension);
+    const filename = `product-icon-${timestamp}-${random}-${baseName}${extension}`;
+    console.log(`📄 Product Icon filename: ${filename}`);
+    cb(null, filename);
+  }
+});
+
+// ✅ NEW: Product Icons Upload Middleware
+const uploadProductIcon = multer({
+  storage: productIconsStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB per file
+    files: 1 // Only one image per product icon
+  }
+}).single('image');
 
 
 module.exports = {
@@ -545,4 +575,5 @@ module.exports = {
   uploadSolutions,
   uploadTestimonialPhoto,
   uploadProjects,
+  uploadProductIcon,
 };
