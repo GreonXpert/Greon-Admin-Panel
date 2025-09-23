@@ -17,7 +17,8 @@ const allowedOrigins = (process.env.CLIENT_URLS
 ).concat([
   'http://localhost:3000',
   'http://localhost:3001',
-  'admin.website.greonxpert.com',
+  'https://admin.website.greonxpert.com',
+  
 ]).filter(Boolean);
 
 const io = socketIo(server, {
