@@ -37,6 +37,13 @@ const createUploadDirectories = () => {
     'Team',
     'solutions',
     'projects',
+
+      // NEW: Career directories
+    'careers',
+    'applications',
+    'applications/resumes',
+    'applications/documents',
+    'applications/general'
   ];
 
   directories.forEach(dir => {
@@ -556,6 +563,118 @@ const uploadProductIcon = multer({
   }
 }).single('image');
 
+// Career Storage Configuration
+const careerStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, '..', 'uploads', 'careers');
+    ensureDirectoryExists(uploadPath);
+    console.log(`📤 Career upload destination: ${uploadPath}`);
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const random = Math.round(Math.random() * 1E9);
+    const sanitizedOriginalName = sanitizeFilename(file.originalname);
+    const extension = path.extname(sanitizedOriginalName);
+    const baseName = path.basename(sanitizedOriginalName, extension);
+    const filename = `career-${timestamp}-${random}-${baseName}${extension}`;
+    console.log(`📄 Career filename: ${filename}`);
+    cb(null, filename);
+  }
+});
+
+// Career Upload Middleware (for job images)
+const uploadCareer = multer({
+  storage: careerStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB per file
+    files: 1 // Only one image per job
+  }
+}).single('image');
+
+// Career Application Storage Configuration
+const applicationStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    let folderPath;
+    const baseUploadPath = path.join(__dirname, '..', 'uploads', 'applications');
+
+    // Determine upload path based on file type
+    switch (file.fieldname) {
+      case 'resume':
+        folderPath = path.join(baseUploadPath, 'resumes');
+        break;
+      case 'additionalDocuments':
+        folderPath = path.join(baseUploadPath, 'documents');
+        break;
+      default:
+        folderPath = path.join(baseUploadPath, 'general');
+    }
+
+    ensureDirectoryExists(folderPath);
+    console.log(`📤 Application upload destination: ${folderPath}`);
+    cb(null, folderPath);
+  },
+  filename: function (req, file, cb) {
+    const timestamp = Date.now();
+    const random = Math.round(Math.random() * 1E9);
+    const sanitizedOriginalName = sanitizeFilename(file.originalname);
+    const extension = path.extname(sanitizedOriginalName);
+    const baseName = path.basename(sanitizedOriginalName, extension);
+    
+    // Prefix based on file type
+    let prefix = 'application';
+    switch (file.fieldname) {
+      case 'resume':
+        prefix = 'resume';
+        break;
+      case 'additionalDocuments':
+        prefix = 'document';
+        break;
+    }
+    
+    const filename = `${prefix}-${timestamp}-${random}-${baseName}${extension}`;
+    console.log(`📄 Application filename: ${filename}`);
+    cb(null, filename);
+  }
+});
+
+// Application Upload Middleware (for resumes and documents)
+const uploadApplication = multer({
+  storage: applicationStorage,
+  fileFilter: (req, file, cb) => {
+    console.log(`📄 Validating application file: ${file.originalname}, MIME: ${file.mimetype}`);
+    
+    const allowedMimeTypes = [
+      // Documents
+      'application/pdf',
+      'application/vnd.ms-word', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'text/plain', // .txt
+      // Images (for profile photos if needed)
+      'image/jpeg',
+      'image/jpg',
+      'image/png'
+    ];
+
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      console.log(`✅ Application file accepted: ${file.originalname}`);
+      cb(null, true);
+    } else {
+      console.log(`❌ Application file rejected: ${file.originalname}, MIME: ${file.mimetype}`);
+      cb(new Error(`Invalid file type: ${file.mimetype}. Only PDF, DOC, DOCX, TXT and image files are allowed for applications.`), false);
+    }
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB per file
+    files: 5 // Maximum 5 files (1 resume + 4 additional documents)
+  }
+}).fields([
+  { name: 'resume', maxCount: 1 },
+  { name: 'additionalDocuments', maxCount: 4 }
+]);
+
+
 
 module.exports = {
   // Existing exports
@@ -576,4 +695,6 @@ module.exports = {
   uploadTestimonialPhoto,
   uploadProjects,
   uploadProductIcon,
+  uploadCareer,
+  uploadApplication
 };

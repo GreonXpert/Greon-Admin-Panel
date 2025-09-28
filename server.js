@@ -18,7 +18,8 @@ const allowedOrigins = (process.env.CLIENT_URLS
   'http://localhost:3000',
   'http://localhost:3001',
   'https://admin.website.greonxpert.com',
-  
+  'https://websiteadmin.greonxpert.com',
+    
 ]).filter(Boolean);
 
 const io = socketIo(server, {
@@ -99,7 +100,12 @@ io.on('connection', (socket) => {
   socket.join('projects');
   socket.join('projects-admin');
   socket.join('projects-public');
-
+  // Career-specific rooms
+  socket.join('careers');
+  socket.join('careers-admin');
+  socket.join('careers-public');
+  socket.join('applications');
+  socket.join('applications-admin');
 
   // Existing emission data request
   socket.on('request-emissions-data', async () => {
@@ -412,7 +418,93 @@ socket.on('leave-projects-room', (room = 'projects') => {
   if (valid.includes(room)) socket.leave(room);
 });
 
+// Career data request handlers
+socket.on('request-careers-data', async () => {
+  try {
+    const Career = require('./models/Career');
+    const careers = await Career.find({ 
+      status: 'active', 
+      expiresAt: { $gt: new Date() } 
+    }).sort({ featured: -1, createdAt: -1 });
+    
+    socket.emit('careers-data', { success: true, data: careers });
+  } catch (error) {
+    socket.emit('careers-error', { success: false, message: 'Error fetching careers data' });
+  }
+});
 
+// Career admin data request
+socket.on('request-careers-admin-data', async () => {
+  try {
+    const Career = require('./models/Career');
+    const careers = await Career.find().sort({ createdAt: -1 });
+    
+    socket.emit('careers-admin-data', { success: true, data: careers });
+  } catch (error) {
+    socket.emit('careers-admin-error', { success: false, message: 'Error fetching careers admin data' });
+  }
+});
+
+// Applications data request
+socket.on('request-applications-data', async (payload = {}) => {
+  try {
+    const Application = require('./models/Application');
+    const { status, jobId, limit = 50 } = payload;
+    
+    const filter = {};
+    if (status && status !== 'all') filter.status = status;
+    if (jobId) filter.jobId = jobId;
+    
+    const applications = await Application.find(filter)
+      .populate('jobId', 'jobRole department')
+      .sort({ createdAt: -1 })
+      .limit(Number(limit));
+    
+    socket.emit('applications-data', { success: true, data: applications });
+  } catch (error) {
+    socket.emit('applications-error', { success: false, message: 'Error fetching applications data' });
+  }
+});
+
+// Join career rooms
+socket.on('join-career-room', (roomType = 'careers') => {
+  const validRooms = ['careers', 'careers-admin', 'careers-public', 'applications', 'applications-admin'];
+  if (validRooms.includes(roomType)) {
+    socket.join(roomType);
+    console.log(`Socket ${socket.id} joined ${roomType} room`);
+  }
+});
+
+socket.on('leave-career-room', (roomType = 'careers') => {
+  const validRooms = ['careers', 'careers-admin', 'careers-public', 'applications', 'applications-admin'];
+  if (validRooms.includes(roomType)) {
+    socket.leave(roomType);
+    console.log(`Socket ${socket.id} left ${roomType} room`);
+  }
+});
+
+// Career analytics request
+socket.on('request-career-analytics', async () => {
+  try {
+    const Career = require('./models/Career');
+    const Application = require('./models/Application');
+    
+    const totalJobs = await Career.countDocuments({ status: 'active' });
+    const totalApplications = await Application.countDocuments();
+    const pendingApplications = await Application.countDocuments({ status: 'pending' });
+    
+    const analytics = {
+      totalJobs,
+      totalApplications,
+      pendingApplications,
+      activeJobs: totalJobs
+    };
+    
+    socket.emit('career-analytics-data', { success: true, data: analytics });
+  } catch (error) {
+    socket.emit('career-analytics-error', { success: false, message: 'Error fetching career analytics' });
+  }
+});
 });
 
 // Routes
@@ -431,6 +523,7 @@ const solutionRoutes = require('./routes/solutionRoutes');
 const contactFormRoutes = require('./routes/contactFormRoutes');
 const testimonialRoutes = require('./routes/testimonialRoutes'); // NEW
 const projectRoutes = require('./routes/projectRoutes');
+const careerRoutes = require('./routes/careerRoutes');
 
 
 
@@ -450,6 +543,7 @@ app.use('/api/solutions', solutionRoutes);
 app.use('/api/contact-forms', contactFormRoutes);
 app.use('/api/testimonials', testimonialRoutes); // NEW
 app.use('/api/projects', projectRoutes);
+app.use('/api/careers', careerRoutes);
 
 
 app.get('/', (req, res) => {
