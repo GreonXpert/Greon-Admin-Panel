@@ -20,6 +20,7 @@ const allowedOrigins = (process.env.CLIENT_URLS
   'https://admin.website.greonxpert.com',
   'https://websiteadmin.greonxpert.com',
   'https://greonxpert.com',
+  'https://www.greonxpert.com',
     
 ]).filter(Boolean);
 
